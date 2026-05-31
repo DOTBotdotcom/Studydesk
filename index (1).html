@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="StudyDesk">
+<meta name="theme-color" content="#1c1a17">
+<link rel="manifest" href="./manifest.json">
+<title>StudyDesk — JEE Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --cream:#f5f0e8;--cream-dark:#ede6d6;--ink:#1c1a17;--ink-mid:#4a4540;
+  --ink-light:#8a8278;--amber:#d4820a;--amber-pale:#fdf3e0;--teal:#1a5c5c;
+  --rose:#c0392b;--rose-pale:#fdf0ee;--sage:#3a6644;--sage-pale:#edf5ef;
+  --border:#ddd5c5;
+}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);
+  display:flex;flex-direction:column;max-width:480px;margin:0 auto;position:relative;}
+
+/* ── TOP BAR ── */
+.topbar{background:var(--ink);color:var(--cream);padding:12px 16px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+  padding-top:max(12px, env(safe-area-inset-top));}
+.logo{font-family:'Fraunces',serif;font-size:19px;font-weight:900;}
+.logo span{color:#d4820a;}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+.day-badge{font-size:11px;color:rgba(255,255,255,.5);}
+.saved-dot{width:7px;height:7px;border-radius:50%;background:#3a6644;transition:background .3s;}
+.saved-dot.unsaved{background:#d4820a;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+/* ── TAB NAV ── */
+.tab-nav{background:var(--ink);display:flex;border-top:1px solid rgba(255,255,255,.08);flex-shrink:0;}
+.tab-nav button{flex:1;background:none;border:none;color:rgba(255,255,255,.4);
+  font-size:9px;font-weight:600;padding:8px 4px 10px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:3px;letter-spacing:.3px;
+  text-transform:uppercase;transition:color .2s;}
+.tab-nav button.active{color:#d4820a;}
+.tab-nav button .ico{font-size:16px;}
+
+/* ── SCROLL AREA ── */
+.page{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 80px;}
+.page.hidden{display:none;}
+
+/* ── CARDS ── */
+.card{background:#fff;border-radius:14px;border:1px solid var(--border);
+  box-shadow:0 2px 10px rgba(0,0,0,.05);margin-bottom:14px;overflow:hidden;}
+.card-header{padding:12px 14px 10px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;}
+.card-title{font-size:13px;font-weight:600;}
+.chip{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:500;}
+.chip-amber{background:#fdf3e0;color:#d4820a;}
+.chip-teal{background:#e0f0f0;color:#1a5c5c;}
+.chip-rose{background:#fdf0ee;color:#c0392b;}
+.chip-sage{background:#edf5ef;color:#3a6644;}
+.card-body{padding:10px 14px;}
+
+/* ── ROWS ── */
+.row{display:flex;align-items:center;gap:8px;padding:8px 0;
+  border-bottom:1px solid var(--cream-dark);font-size:13px;}
+.row:last-child{border-bottom:none;}
+.del-btn{background:none;border:none;color:var(--rose);font-size:13px;
+  cursor:pointer;padding:2px 4px;flex-shrink:0;opacity:.4;transition:opacity .15s;}
+.row:hover .del-btn,.row:active .del-btn{opacity:1;}
+
+/* ── SCHEDULE ── */
+.sched-time{color:var(--ink-light);font-size:11px;min-width:80px;font-weight:500;}
+.sched-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.sched-name{flex:1;font-weight:500;}
+.sched-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;}
+
+/* ── ASSIGNMENTS ── */
+.check{width:18px;height:18px;border:2px solid var(--border);border-radius:4px;
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:10px;cursor:pointer;transition:all .15s;}
+.check.done{background:#3a6644;border-color:#3a6644;color:#fff;}
+.asgn-info{flex:1;}
+.asgn-name{font-weight:500;font-size:13px;}
+.asgn-name.done{text-decoration:line-through;color:var(--ink-light);}
+.asgn-meta{font-size:11px;color:var(--ink-light);margin-top:2px;}
+.urgent{color:#c0392b;font-weight:600;}
+
+/* ── HABITS ── */
+.habit-name{flex:1;font-size:12px;font-weight:500;}
+.hdays{display:flex;gap:3px;}
+.hday{width:22px;height:22px;border-radius:5px;display:flex;align-items:center;
+  justify-content:center;font-size:8px;font-weight:700;cursor:pointer;transition:all .15s;}
+.hday.on{background:#3a6644;color:#fff;}
+.hday.off{background:var(--cream-dark);color:var(--ink-light);}
+.hday.today{outline:2px solid #d4820a;outline-offset:1px;}
+
+/* ── COURSES ── */
+.courses-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.course-tile{background:var(--cream);border-radius:10px;padding:10px 8px;
+  text-align:center;border:1px solid var(--border);cursor:pointer;transition:border-color .15s;}
+.course-tile:hover{border-color:var(--amber);}
+.ring-wrap{position:relative;width:48px;height:48px;margin:0 auto 6px;}
+.ring-wrap svg{transform:rotate(-90deg);}
+.ring-pct{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:10px;font-weight:700;}
+.course-icon{font-size:14px;margin-bottom:3px;}
+.course-name{font-size:10px;font-weight:600;}
+
+/* ── EVENTS ── */
+.event-row{display:flex;align-items:center;gap:8px;padding:7px 0;
+  border-bottom:1px solid var(--cream-dark);font-size:12px;}
+.event-row:last-child{border-bottom:none;}
+.event-bar{width:3px;height:32px;border-radius:2px;flex-shrink:0;}
+.event-info{flex:1;}
+.event-title{font-weight:600;font-size:12px;}
+.event-date{font-size:10px;color:var(--ink-light);}
+
+/* ── BOOKS ── */
+.reading-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.book-tile{border-radius:10px;overflow:hidden;border:1px solid var(--border);}
+.book-spine{height:72px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:8px;text-align:center;}
+.book-spine-title{font-size:10px;font-weight:700;color:#fff;line-height:1.2;}
+.book-spine-author{font-size:9px;color:rgba(255,255,255,.7);margin-top:2px;}
+.book-meta{padding:7px 9px;background:#fff;}
+.book-meta-title{font-size:10px;font-weight:600;margin-bottom:3px;}
+.book-prog-bar{height:3px;background:var(--cream-dark);border-radius:2px;margin-bottom:3px;}
+.book-prog-fill{height:100%;border-radius:2px;}
+.book-pct{font-size:9px;color:var(--ink-light);}
+
+/* ── BRAIN DUMP ── */
+.brain-entry{display:flex;align-items:flex-start;gap:7px;padding:6px 0;
+  border-bottom:1px solid var(--cream-dark);font-size:12px;color:var(--ink-mid);}
+.brain-entry:last-child{border-bottom:none;}
+.brain-bullet{color:#d4820a;font-size:14px;flex-shrink:0;}
+
+/* ── POMODORO ── */
+.pomo-wrap{display:flex;align-items:center;gap:14px;padding:4px 0;}
+.pomo-ring{position:relative;width:80px;height:80px;flex-shrink:0;}
+.pomo-ring svg{transform:rotate(-90deg);}
+.pomo-time{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-family:'Fraunces',serif;font-size:18px;font-weight:700;}
+.pomo-info{flex:1;}
+.pomo-label{font-size:10px;font-weight:600;color:var(--ink-light);letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px;}
+.pomo-subject{font-size:13px;font-weight:600;margin-bottom:8px;
+  border:none;background:transparent;font-family:'DM Sans',sans-serif;
+  color:var(--ink);width:100%;outline:none;padding:0;}
+.pomo-btns{display:flex;gap:6px;}
+.pomo-btn{font-size:11px;font-weight:600;padding:6px 12px;border-radius:6px;
+  cursor:pointer;border:none;transition:all .15s;}
+.pomo-btn.start{background:var(--ink);color:#fff;}
+.pomo-btn.reset{background:var(--cream-dark);color:var(--ink);}
+.pomo-tabs{display:flex;background:var(--cream-dark);border-radius:8px;padding:3px;margin-bottom:12px;}
+.pomo-tab{flex:1;text-align:center;font-size:11px;font-weight:600;padding:6px 4px;
+  border-radius:6px;cursor:pointer;color:var(--ink-light);transition:all .15s;}
+.pomo-tab.active{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.08);}
+
+/* ── ADD BUTTON ── */
+.add-btn{display:flex;align-items:center;justify-content:center;gap:5px;
+  background:var(--amber-pale);color:var(--amber);border:1px dashed #d4820a;
+  border-radius:7px;padding:7px 12px;font-size:11px;font-weight:600;
+  cursor:pointer;width:100%;margin-top:8px;transition:background .15s;}
+.add-btn:active{background:#fce8c0;}
+
+/* ── WEEK GRID ── */
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:10px;}
+.wcol{text-align:center;}
+.wcol-day{font-size:9px;font-weight:600;color:var(--ink-light);margin-bottom:3px;text-transform:uppercase;}
+.wcol-date{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:11px;font-weight:500;margin:0 auto 2px;}
+.wcol-date.today{background:var(--ink);color:var(--cream);font-weight:700;}
+.wcol-date.has-event{background:#fdf3e0;color:#d4820a;font-weight:700;}
+.wcol-dot{width:4px;height:4px;border-radius:50%;background:#d4820a;margin:0 auto;}
+.wcol-dot.hidden{opacity:0;}
+
+/* ── SECTION HEADER ── */
+.section-hdr{display:flex;align-items:center;justify-content:space-between;
+  margin:4px 0 10px;}
+.section-hdr h3{font-family:'Fraunces',serif;font-size:18px;font-weight:700;}
+
+/* ── MODAL ── */
+.backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;
+  display:none;align-items:flex-end;justify-content:center;}
+.backdrop.open{display:flex;}
+.modal{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 32px;
+  width:100%;max-width:480px;max-height:90vh;overflow-y:auto;
+  animation:slideUp .25s ease;}
+@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.modal h3{font-family:'Fraunces',serif;font-size:18px;font-weight:700;margin-bottom:16px;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--ink-light);
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--border);
+  border-radius:8px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;
+  color:var(--ink);background:var(--cream);outline:none;transition:border-color .15s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--amber);}
+.field textarea{resize:vertical;min-height:60px;}
+.modal-btns{display:flex;gap:8px;margin-top:16px;}
+.modal-save{flex:1;background:var(--ink);color:#fff;border:none;border-radius:8px;
+  padding:12px;font-size:13px;font-weight:600;cursor:pointer;}
+.modal-cancel{background:var(--cream-dark);color:var(--ink);border:none;
+  border-radius:8px;padding:12px 16px;font-size:13px;font-weight:600;cursor:pointer;}
+.color-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px;}
+.swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;
+  border:2px solid transparent;transition:border-color .15s;}
+.swatch.sel{border-color:var(--ink);}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;
+  background:var(--cream-dark);border-radius:2px;outline:none;border:none;padding:0;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;
+  border-radius:50%;background:var(--amber);cursor:pointer;}
+
+/* ── INSTALL BANNER ── */
+.install-banner{background:var(--teal);color:#fff;padding:10px 16px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.install-banner p{font-size:12px;font-weight:500;}
+.install-banner button{background:#fff;color:var(--teal);border:none;
+  border-radius:6px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;}
+.install-banner .close-banner{background:none;color:rgba(255,255,255,.6);
+  border:none;font-size:16px;cursor:pointer;padding:0 0 0 8px;}
+</style>
+</head>
+<body>
+
+<!-- INSTALL BANNER -->
+<div class="install-banner" id="install-banner" style="display:none;">
+  <p>📲 Install StudyDesk as an app</p>
+  <div style="display:flex;align-items:center;gap:4px;">
+    <button id="install-btn">Install</button>
+    <button class="close-banner" onclick="document.getElementById('install-banner').style.display='none'">✕</button>
+  </div>
+</div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">Study<span>Desk</span></div>
+  <div class="topbar-right">
+    <span class="day-badge" id="today-label"></span>
+    <div class="saved-dot" id="saved-dot" title="All changes saved"></div>
+  </div>
+</div>
+
+<!-- PAGES -->
+<div class="page" id="page-schedule">
+  <div class="section-hdr"><h3>📅 Today's Schedule</h3></div>
+  <div class="card"><div class="card-body" id="schedule-list"></div></div>
+
+  <div class="section-hdr" style="margin-top:4px;"><h3>📋 Assignments</h3></div>
+  <div class="card"><div class="card-body" id="assign-list"></div></div>
+</div>
+
+<div class="page hidden" id="page-habits">
+  <div class="section-hdr"><h3>🔥 Habits</h3><span class="chip chip-sage" id="habit-week"></span></div>
+  <div class="card">
+    <div class="card-body">
+      <div style="display:flex;margin-bottom:6px;">
+        <div style="flex:1;"></div>
+        <div style="display:flex;gap:3px;" id="habit-day-hdrs"></div>
+      </div>
+      <div id="habit-list"></div>
+    </div>
+  </div>
+
+  <div class="section-hdr" style="margin-top:4px;"><h3>📚 Courses</h3></div>
+  <div class="card">
+    <div class="card-body">
+      <div class="courses-grid" id="courses-grid"></div>
+      <button class="add-btn" onclick="openModal('course')">＋ Add Course</button>
+    </div>
+  </div>
+</div>
+
+<div class="page hidden" id="page-focus">
+  <div class="section-hdr"><h3>⏱ Focus Timer</h3></div>
+  <div class="card">
+    <div class="card-body">
+      <div class="pomo-tabs">
+        <div class="pomo-tab active" onclick="setMode('pomo',this)">Pomodoro</div>
+        <div class="pomo-tab" onclick="setMode('short',this)">Short Break</div>
+        <div class="pomo-tab" onclick="setMode('long',this)">Long Break</div>
+      </div>
+      <div class="pomo-wrap">
+        <div class="pomo-ring">
+          <svg viewBox="0 0 80 80" width="80" height="80">
+            <circle fill="none" stroke="#ede6d6" stroke-width="6" cx="40" cy="40" r="34"/>
+            <circle id="pomo-ring" fill="none" stroke="#d4820a" stroke-width="6" stroke-linecap="round"
+              cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="0"
+              style="transition:stroke-dashoffset 1s linear;"/>
+          </svg>
+          <div class="pomo-time" id="pomo-display">25:00</div>
+        </div>
+        <div class="pomo-info">
+          <div class="pomo-label" id="pomo-mode-label">FOCUS SESSION</div>
+          <input class="pomo-subject" id="pomo-subject" value="Biology Essay" placeholder="What are you studying?"/>
+          <div class="pomo-btns">
+            <button class="pomo-btn start" id="pomo-btn" onclick="togglePomo()">▶ Start</button>
+            <button class="pomo-btn reset" onclick="resetPomo()">↺ Reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-hdr" style="margin-top:4px;"><h3>🧠 Brain Dump</h3></div>
+  <div class="card">
+    <div class="card-body" id="brain-list"></div>
+  </div>
+</div>
+
+<div class="page hidden" id="page-calendar">
+  <div class="section-hdr"><h3>🗓 This Week</h3><span class="chip chip-amber" id="week-label"></span></div>
+  <div class="card">
+    <div class="card-body">
+      <div class="week-grid" id="week-grid"></div>
+      <div id="event-list"></div>
+      <button class="add-btn" onclick="openModal('event')">＋ Add Event</button>
+    </div>
+  </div>
+
+  <div class="section-hdr" style="margin-top:4px;"><h3>📖 Reading</h3></div>
+  <div class="card">
+    <div class="card-body">
+      <div style="font-size:10px;font-weight:600;color:var(--ink-light);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Currently Reading</div>
+      <div class="reading-grid" id="reading-now"></div>
+      <div style="font-size:10px;font-weight:600;color:var(--ink-light);margin:8px 0 6px;text-transform:uppercase;letter-spacing:.5px;">Up Next</div>
+      <div class="reading-grid" id="reading-next"></div>
+      <button class="add-btn" onclick="openModal('book')">＋ Add Book</button>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="tab-nav">
+  <button class="active" onclick="showPage('schedule',this)"><span class="ico">📅</span>Schedule</button>
+  <button onclick="showPage('habits',this)"><span class="ico">🔥</span>Habits</button>
+  <button onclick="showPage('focus',this)"><span class="ico">⏱</span>Focus</button>
+  <button onclick="showPage('calendar',this)"><span class="ico">🗓</span>Calendar</button>
+</div>
+
+<!-- MODAL -->
+<div class="backdrop" id="backdrop" onclick="closeBackdrop(event)">
+  <div class="modal">
+    <h3 id="modal-title">Add</h3>
+    <div id="modal-fields"></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-save" id="modal-save-btn" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// DB  — IndexedDB wrapper (reliable on installed PWA)
+// ══════════════════════════════════════════════════════════
+const DB_NAME = 'studydesk', DB_VER = 1, STORE = 'state';
+let db;
+
+function openDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => e.target.result.createObjectStore(STORE);
+    req.onsuccess = e => { db = e.target.result; res(db); };
+    req.onerror = () => rej();
+  });
+}
+function dbSave(data) {
+  if (!db) return;
+  const tx = db.transaction(STORE, 'readwrite');
+  tx.objectStore(STORE).put(JSON.stringify(data), 'main');
+}
+function dbLoad() {
+  return new Promise(res => {
+    if (!db) { res(null); return; }
+    const req = db.transaction(STORE).objectStore(STORE).get('main');
+    req.onsuccess = () => res(req.result ? JSON.parse(req.result) : null);
+    req.onerror = () => res(null);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// DEFAULT STATE
+// ══════════════════════════════════════════════════════════
+const DEFAULT = {
+  schedule: [
+    { time:'7:00 – 8:00',  name:'Morning Routine',  color:'#d4820a', tag:'Home',   tc:'chip-amber' },
+    { time:'8:30 – 10:00', name:'Biology Lecture',  color:'#1a5c5c', tag:'Class',  tc:'chip-teal'  },
+    { time:'10:15 – 11:00',name:'Math Tutorial',    color:'#c0392b', tag:'Study',  tc:'chip-rose'  },
+    { time:'12:00 – 13:00',name:'Lunch Break ☕',   color:'#e8e0d0', tag:'Break',  tc:''            },
+    { time:'13:00 – 15:00',name:'Self-Study Block', color:'#3a6644', tag:'Focus',  tc:'chip-sage'  },
+    { time:'17:00 – 18:00',name:'Gym / Walk 🏃',    color:'#d4820a', tag:'Health', tc:'chip-amber' }
+  ],
+  assignments: [
+    { name:'Chemistry Lab Report',      course:'Chemistry', due:'Submitted ✓',        done:true,  urgent:false },
+    { name:'Biology Essay – Genetics',  course:'Biology',   due:'Due Aug 1 · 2 days', done:false, urgent:true  },
+    { name:'History Presentation',      course:'History',   due:'Due Aug 3 · 4 days', done:false, urgent:true  },
+    { name:'Group Project – Marketing', course:'Marketing', due:'Due Aug 8 · 1 week', done:false, urgent:false },
+    { name:'Midterm Prep – Calculus',   course:'Math',      due:'Due Aug 16 · 2 wks', done:false, urgent:false }
+  ],
+  habits: [
+    { name:'Exercise 🏋️',      days:[1,1,0,1,1,0,0] },
+    { name:'Read 30 min 📖',   days:[1,1,1,1,0,0,0] },
+    { name:'Drink 2L water 💧',days:[1,0,1,1,1,0,0] },
+    { name:'Review notes 📝',  days:[1,1,0,1,1,0,0] },
+    { name:'Sleep by 11PM 🌙', days:[1,1,1,0,0,0,0] }
+  ],
+  courses: [
+    { icon:'🔬', name:'Biology',   pct:50, color:'#1a5c5c' },
+    { icon:'📐', name:'Math',      pct:30, color:'#d4820a' },
+    { icon:'📖', name:'English',   pct:15, color:'#c0392b' },
+    { icon:'🏛',  name:'History',  pct:70, color:'#3a6644' },
+    { icon:'⚛️', name:'Comp Sci', pct:100,color:'#1a5c5c' },
+    { icon:'💰', name:'Economics', pct:40, color:'#d4820a' }
+  ],
+  brain: [
+    'Review Chapter 7 — presenting Wednesday',
+    'Start Math assignment by Tuesday',
+    'Email professor about group project roles'
+  ],
+  events: [
+    { title:'Biology Lab Session',    date:'Mon, Aug 25 · 10:00 AM', color:'#1a5c5c', tag:'Class',    tc:'chip-teal'  },
+    { title:'Group Study – History',  date:'Wed, Aug 27 · 3:00 PM',  color:'#3a6644', tag:'Group',    tc:'chip-sage'  },
+    { title:'Biology Essay Deadline', date:'Fri, Aug 1 · 11:59 PM',  color:'#c0392b', tag:'Deadline', tc:'chip-rose'  },
+    { title:'Semester Review Week',   date:'Sun, Aug 31 · All Day',  color:'#d4820a', tag:'Event',    tc:'chip-amber' },
+    { title:'⚛️ Physics',             date:'Mon, Jun 1 · 4:00–5:45 PM',  color:'#1a4a7a', tag:'JEE', tc:'chip-teal'  },
+    { title:'🧪 Chemistry',           date:'Mon, Jun 1 · 6:15–8:00 PM',  color:'#3a6644', tag:'JEE', tc:'chip-sage'  },
+    { title:'📐 Mathematics',         date:'Tue, Jun 2 · 4:00–5:45 PM',  color:'#d4820a', tag:'JEE', tc:'chip-amber' },
+    { title:'⚛️ Physics',             date:'Tue, Jun 2 · 6:15–8:00 PM',  color:'#1a4a7a', tag:'JEE', tc:'chip-teal'  },
+    { title:'📐 Mathematics',         date:'Wed, Jun 3 · 4:00–5:45 PM',  color:'#d4820a', tag:'JEE', tc:'chip-amber' },
+    { title:'📐 Mathematics',         date:'Thu, Jun 4 · 4:00–5:45 PM',  color:'#d4820a', tag:'JEE', tc:'chip-amber' },
+    { title:'🧪 Chemistry',           date:'Thu, Jun 4 · 6:15–8:00 PM',  color:'#3a6644', tag:'JEE', tc:'chip-sage'  },
+    { title:'📐 Mathematics',         date:'Fri, Jun 5 · 4:00–5:45 PM',  color:'#d4820a', tag:'JEE', tc:'chip-amber' },
+    { title:'⚛️ Physics',             date:'Fri, Jun 5 · 6:15–8:00 PM',  color:'#1a4a7a', tag:'JEE', tc:'chip-teal'  },
+    { title:'🧪 Chemistry',           date:'Sat, Jun 6 · 4:00–5:45 PM',  color:'#3a6644', tag:'JEE', tc:'chip-sage'  },
+    { title:'⚛️ Physics',             date:'Sat, Jun 6 · 6:15–8:00 PM',  color:'#1a4a7a', tag:'JEE', tc:'chip-teal'  }
+  ],
+  books: [
+    { title:'Atomic Habits', author:'James Clear',    color:'#2c5f2e', pct:72, genre:'Productivity', status:'reading' },
+    { title:'Make It Stick', author:'Peter C. Brown', color:'#1a4a7a', pct:38, genre:'Study Skills',  status:'reading' },
+    { title:'Deep Work',     author:'Cal Newport',    color:'#5a3a0a', pct:0,  genre:'Focus',         status:'next'    },
+    { title:'7 Habits',      author:'S. Covey',       color:'#3a1a4a', pct:0,  genre:'Leadership',    status:'queued'  }
+  ]
+};
+
+let state = JSON.parse(JSON.stringify(DEFAULT));
+
+// ══════════════════════════════════════════════════════════
+// SAVE  (debounced so rapid edits don't hammer DB)
+// ══════════════════════════════════════════════════════════
+let saveTimer;
+function save() {
+  const dot = document.getElementById('saved-dot');
+  if (dot) dot.classList.add('unsaved');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    dbSave(state);
+    if (dot) dot.classList.remove('unsaved');
+  }, 400);
+}
+
+// ══════════════════════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════════════════════
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+  document.getElementById('page-' + name).classList.remove('hidden');
+  document.querySelectorAll('.tab-nav button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER ALL
+// ══════════════════════════════════════════════════════════
+function render() {
+  renderSchedule(); renderAssignments(); renderHabits();
+  renderCourses(); renderBrain(); renderEvents();
+  renderBooks(); renderWeekGrid(); updateDateLabels();
+}
+
+function updateDateLabels() {
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const now = new Date();
+  document.getElementById('today-label').textContent = days[now.getDay()];
+  document.getElementById('week-label').textContent = months[now.getMonth()] + ' ' + now.getFullYear();
+  const wk = Math.ceil(((now - new Date(now.getFullYear(),0,1))/86400000 + new Date(now.getFullYear(),0,1).getDay()+1)/7);
+  const hw = document.getElementById('habit-week');
+  if (hw) hw.textContent = 'Week ' + wk;
+}
+
+// ── Schedule ──────────────────────────────────────────────
+function renderSchedule() {
+  const el = document.getElementById('schedule-list');
+  el.innerHTML = state.schedule.map((s,i) => `
+    <div class="row">
+      <span class="sched-time">${s.time}</span>
+      <span class="sched-dot" style="background:${s.color};"></span>
+      <span class="sched-name">${s.name}</span>
+      <span class="sched-tag ${s.tc}">${s.tag}</span>
+      <button class="del-btn" onclick="del('schedule',${i})">✕</button>
+    </div>`).join('') +
+    `<button class="add-btn" onclick="openModal('schedule')">＋ Add Time Block</button>`;
+}
+
+// ── Assignments ───────────────────────────────────────────
+function renderAssignments() {
+  const soon = state.assignments.filter(a=>a.urgent&&!a.done).length;
+  const el = document.getElementById('assign-list');
+  el.innerHTML = state.assignments.map((a,i) => `
+    <div class="row" style="align-items:flex-start;">
+      <div class="check ${a.done?'done':''}" onclick="toggleAssign(${i})" style="margin-top:2px;">${a.done?'✓':''}</div>
+      <div class="asgn-info">
+        <div class="asgn-name ${a.done?'done':''}">${a.name}</div>
+        <div class="asgn-meta"><span>${a.course}</span> · <span class="${a.urgent&&!a.done?'urgent':''}">${a.due}</span></div>
+      </div>
+      <button class="del-btn" onclick="del('assignments',${i})">✕</button>
+    </div>`).join('') +
+    `<button class="add-btn" onclick="openModal('assignment')">＋ Add Assignment</button>`;
+}
+
+function toggleAssign(i) {
+  state.assignments[i].done = !state.assignments[i].done;
+  save(); renderAssignments();
+}
+
+// ── Habits ────────────────────────────────────────────────
+function renderHabits() {
+  const DL = ['M','T','W','T','F','S','S'];
+  const today = (new Date().getDay()+6)%7;
+  document.getElementById('habit-day-hdrs').innerHTML = DL.map((l,i) =>
+    `<div style="width:22px;font-size:9px;font-weight:${i===today?'800':'600'};color:${i===today?'#d4820a':'var(--ink-light)'};text-align:center;">${l}</div>`
+  ).join('');
+  document.getElementById('habit-list').innerHTML = state.habits.map((h,hi) => `
+    <div class="row">
+      <div class="habit-name">${h.name}</div>
+      <div class="hdays">${h.days.map((d,di) =>
+        `<div class="hday ${d?'on':'off'} ${di===today?'today':''}" onclick="toggleHabit(${hi},${di})">${d?'✓':'–'}</div>`
+      ).join('')}</div>
+      <button class="del-btn" onclick="del('habits',${hi})">✕</button>
+    </div>`).join('') +
+    `<button class="add-btn" onclick="openModal('habit')">＋ Add Habit</button>`;
+}
+
+function toggleHabit(hi,di) {
+  state.habits[hi].days[di] = state.habits[hi].days[di] ? 0 : 1;
+  save(); renderHabits();
+}
+
+// ── Courses ───────────────────────────────────────────────
+function renderCourses() {
+  document.getElementById('courses-grid').innerHTML = state.courses.map((c,i) => {
+    const offset = 113*(1-c.pct/100);
+    return `<div class="course-tile" onclick="openModal('course',${i})">
+      <div class="course-icon">${c.icon}</div>
+      <div class="ring-wrap">
+        <svg viewBox="0 0 48 48" width="48" height="48">
+          <circle fill="none" stroke="#ede6d6" stroke-width="4" cx="24" cy="24" r="18"/>
+          <circle fill="none" stroke="${c.color}" stroke-width="4" stroke-linecap="round"
+            cx="24" cy="24" r="18" stroke-dasharray="113" stroke-dashoffset="${offset}"/>
+        </svg>
+        <div class="ring-pct">${c.pct}%</div>
+      </div>
+      <div class="course-name">${c.name}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Brain Dump ────────────────────────────────────────────
+function renderBrain() {
+  const el = document.getElementById('brain-list');
+  el.innerHTML = state.brain.map((b,i) => `
+    <div class="brain-entry">
+      <span class="brain-bullet">•</span>
+      <span style="flex:1;">${b}</span>
+      <button class="del-btn" onclick="del('brain',${i})">✕</button>
+    </div>`).join('') +
+    `<button class="add-btn" onclick="openModal('brain')">＋ Add Note</button>`;
+}
+
+// ── Events ────────────────────────────────────────────────
+function renderEvents() {
+  document.getElementById('event-list').innerHTML = state.events.map((e,i) => `
+    <div class="event-row">
+      <div class="event-bar" style="background:${e.color};"></div>
+      <div class="event-info">
+        <div class="event-title">${e.title}</div>
+        <div class="event-date">${e.date}</div>
+      </div>
+      <span class="chip ${e.tc}">${e.tag}</span>
+      <button class="del-btn" onclick="del('events',${i})">✕</button>
+    </div>`).join('');
+}
+
+// ── Week Grid ─────────────────────────────────────────────
+function renderWeekGrid() {
+  const now = new Date();
+  const dow = now.getDay();
+  const start = new Date(now);
+  start.setDate(now.getDate() - (dow===0?6:dow-1));
+  const DL = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  document.getElementById('week-grid').innerHTML = DL.map((d,i) => {
+    const day = new Date(start); day.setDate(start.getDate()+i);
+    const isToday = day.toDateString()===now.toDateString();
+    const hasEv = state.events.length>0 && i%2===0;
+    return `<div class="wcol">
+      <div class="wcol-day">${d}</div>
+      <div class="wcol-date ${isToday?'today':hasEv?'has-event':''}">${day.getDate()}</div>
+      <div class="wcol-dot ${hasEv?'':'hidden'}"></div>
+    </div>`;
+  }).join('');
+}
+
+// ── Books ─────────────────────────────────────────────────
+function renderBooks() {
+  const now = state.books.filter(b=>b.status==='reading');
+  const next = state.books.filter(b=>b.status!=='reading');
+  document.getElementById('reading-now').innerHTML = now.map(b=>bookTile(b)).join('') ||
+    '<p style="font-size:12px;color:var(--ink-light);grid-column:span 2;">No books in progress.</p>';
+  document.getElementById('reading-next').innerHTML = next.map(b=>bookTile(b)).join('') ||
+    '<p style="font-size:12px;color:var(--ink-light);grid-column:span 2;">Queue is empty.</p>';
+}
+function bookTile(b) {
+  const idx = state.books.indexOf(b);
+  if (b.status==='reading') return `<div class="book-tile">
+    <div class="book-spine" style="background:${b.color};">
+      <div class="book-spine-title">${b.title}</div>
+      <div class="book-spine-author">${b.author}</div>
+    </div>
+    <div class="book-meta">
+      <div class="book-meta-title">${b.title}</div>
+      <div class="book-prog-bar"><div class="book-prog-fill" style="width:${b.pct}%;background:${b.color};"></div></div>
+      <div class="book-pct" style="display:flex;justify-content:space-between;">
+        <span>${b.pct}% · ${b.genre}</span>
+        <button class="del-btn" style="opacity:1;" onclick="del('books',${idx})">✕</button>
+      </div>
+    </div></div>`;
+  const bc = b.status==='next'?'chip-amber':'chip-teal';
+  const bl = b.status==='next'?'Next Up':'Queued';
+  return `<div class="book-tile">
+    <div class="book-spine" style="background:${b.color};">
+      <div class="book-spine-title">${b.title}</div>
+      <div class="book-spine-author">${b.author}</div>
+    </div>
+    <div class="book-meta">
+      <div class="book-meta-title">${b.title}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span class="chip ${bc}">${bl}</span>
+        <button class="del-btn" style="opacity:1;" onclick="del('books',${idx})">✕</button>
+      </div>
+    </div></div>`;
+}
+
+// ── Delete ────────────────────────────────────────────────
+function del(list, i) {
+  state[list].splice(i,1); save(); render();
+}
+
+// ══════════════════════════════════════════════════════════
+// MODAL
+// ══════════════════════════════════════════════════════════
+const COLORS = ['#d4820a','#1a5c5c','#c0392b','#3a6644','#1a4a7a','#5a3a0a','#7a1a4a','#2c5f2e','#4a2c0a','#1c1a17'];
+let mType='', mIdx=-1;
+
+function swatches(sel='#d4820a') {
+  return `<div class="color-row">${COLORS.map(c=>
+    `<div class="swatch ${c===sel?'sel':''}" style="background:${c};" onclick="pickColor(this,'${c}')"></div>`
+  ).join('')}</div>`;
+}
+function pickColor(el,c) {
+  el.closest('.color-row').querySelectorAll('.swatch').forEach(s=>s.classList.remove('sel'));
+  el.classList.add('sel');
+  el.closest('.field').querySelector('input[name=color]').value=c;
+}
+function v(n){ const e=document.querySelector(`#modal-fields [name="${n}"]`); return e?e.value.trim():''; }
+
+function openModal(type, idx=-1) {
+  mType=type; mIdx=idx;
+  const titles = {schedule:'Add Time Block',assignment:'Add Assignment',habit:'Add Habit',
+    course:idx>=0?'Edit Course':'Add Course',brain:'Add Brain Dump',event:'Add Event',book:'Add Book'};
+  document.getElementById('modal-title').textContent = titles[type];
+  document.getElementById('modal-save-btn').textContent = idx>=0?'Update':'Save';
+  const f = document.getElementById('modal-fields');
+  if (type==='schedule') {
+    f.innerHTML=`<div class="field"><label>Time</label><input name="time" placeholder="e.g. 9:00 – 10:30"/></div>
+    <div class="field"><label>Name</label><input name="name" placeholder="e.g. Physics Lecture"/></div>
+    <div class="field"><label>Tag</label><input name="tag" placeholder="e.g. Class"/></div>
+    <div class="field"><label>Color</label>${swatches()}<input type="hidden" name="color" value="#d4820a"/></div>`;
+  } else if (type==='assignment') {
+    f.innerHTML=`<div class="field"><label>Name</label><input name="name" placeholder="e.g. Physics Assignment"/></div>
+    <div class="field"><label>Course</label><input name="course" placeholder="e.g. Physics"/></div>
+    <div class="field"><label>Due / Label</label><input name="due" placeholder="e.g. Due Jun 10 · 3 days"/></div>
+    <div class="field"><label>Priority</label><select name="urgent"><option value="0">Normal</option><option value="1">Urgent</option></select></div>`;
+  } else if (type==='habit') {
+    f.innerHTML=`<div class="field"><label>Habit (with emoji)</label><input name="name" placeholder="e.g. Solve 20 questions 📝"/></div>`;
+  } else if (type==='course') {
+    const c = idx>=0 ? state.courses[idx] : {icon:'📘',name:'',pct:0,color:'#1a4a7a'};
+    f.innerHTML=`<div class="field"><label>Emoji Icon</label><input name="icon" value="${c.icon}" placeholder="📘"/></div>
+    <div class="field"><label>Course Name</label><input name="name" value="${c.name}" placeholder="e.g. Physics"/></div>
+    <div class="field"><label>Progress: <span id="pct-lbl">${c.pct}%</span></label>
+      <input type="range" name="pct" min="0" max="100" value="${c.pct}" oninput="document.getElementById('pct-lbl').textContent=this.value+'%'"/></div>
+    <div class="field"><label>Color</label>${swatches(c.color)}<input type="hidden" name="color" value="${c.color}"/></div>`;
+    if (idx>=0) {
+      f.innerHTML += `<button type="button" onclick="del('courses',${idx});closeModal();" 
+        style="width:100%;background:#fdf0ee;color:#c0392b;border:1px solid #f5c6c0;border-radius:8px;padding:10px;font-size:12px;font-weight:600;cursor:pointer;margin-top:4px;">
+        🗑 Remove Course</button>`;
+    }
+  } else if (type==='brain') {
+    f.innerHTML=`<div class="field"><label>Note</label><textarea name="note" placeholder="What's on your mind?"></textarea></div>`;
+  } else if (type==='event') {
+    f.innerHTML=`<div class="field"><label>Title</label><input name="title" placeholder="e.g. Physics Exam"/></div>
+    <div class="field"><label>Date & Time</label><input name="date" placeholder="e.g. Mon, Jun 8 · 10:00 AM"/></div>
+    <div class="field"><label>Tag</label><input name="tag" placeholder="e.g. Exam, JEE, Class"/></div>
+    <div class="field"><label>Color</label>${swatches()}<input type="hidden" name="color" value="#d4820a"/></div>`;
+  } else if (type==='book') {
+    f.innerHTML=`<div class="field"><label>Title</label><input name="title" placeholder="e.g. HC Verma"/></div>
+    <div class="field"><label>Author</label><input name="author" placeholder="e.g. H.C. Verma"/></div>
+    <div class="field"><label>Subject / Genre</label><input name="genre" placeholder="e.g. Physics"/></div>
+    <div class="field"><label>Status</label><select name="status">
+      <option value="reading">Currently Reading</option>
+      <option value="next">Next Up</option>
+      <option value="queued">Queued</option></select></div>
+    <div class="field"><label>Progress: <span id="bpct-lbl">0%</span></label>
+      <input type="range" name="pct" min="0" max="100" value="0" oninput="document.getElementById('bpct-lbl').textContent=this.value+'%'"/></div>
+    <div class="field"><label>Spine Color</label>${swatches('#1a4a7a')}<input type="hidden" name="color" value="#1a4a7a"/></div>`;
+  }
+  document.getElementById('backdrop').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('backdrop').classList.remove('open');
+  mIdx=-1;
+}
+function closeBackdrop(e) {
+  if (e.target===document.getElementById('backdrop')) closeModal();
+}
+
+function saveModal() {
+  const tcMap = {Class:'chip-teal',Study:'chip-rose',Home:'chip-amber',Focus:'chip-sage',Health:'chip-amber',JEE:'chip-teal',Exam:'chip-rose',Group:'chip-sage',Deadline:'chip-rose',Event:'chip-amber'};
+  if (mType==='schedule') {
+    if (!v('name')) return;
+    state.schedule.push({time:v('time')||'–',name:v('name'),color:v('color'),tag:v('tag')||'Block',tc:tcMap[v('tag')]||'chip-amber'});
+  } else if (mType==='assignment') {
+    if (!v('name')) return;
+    state.assignments.push({name:v('name'),course:v('course')||'General',due:v('due')||'TBD',done:false,urgent:v('urgent')==='1'});
+  } else if (mType==='habit') {
+    if (!v('name')) return;
+    state.habits.push({name:v('name'),days:[0,0,0,0,0,0,0]});
+  } else if (mType==='course') {
+    if (!v('name')) return;
+    const obj={icon:v('icon')||'📘',name:v('name'),pct:parseInt(v('pct'))||0,color:v('color')};
+    if (mIdx>=0) state.courses[mIdx]=obj; else state.courses.push(obj);
+  } else if (mType==='brain') {
+    if (!v('note')) return;
+    state.brain.push(v('note'));
+  } else if (mType==='event') {
+    if (!v('title')) return;
+    state.events.push({title:v('title'),date:v('date')||'TBD',color:v('color'),tag:v('tag')||'Event',tc:tcMap[v('tag')]||'chip-amber'});
+  } else if (mType==='book') {
+    if (!v('title')) return;
+    state.books.push({title:v('title'),author:v('author')||'Unknown',color:v('color'),pct:parseInt(v('pct'))||0,genre:v('genre')||'General',status:v('status')});
+  }
+  save(); closeModal(); render();
+}
+
+// ══════════════════════════════════════════════════════════
+// POMODORO
+// ══════════════════════════════════════════════════════════
+const POMO_MODES={pomo:25*60,short:5*60,long:15*60};
+const POMO_LABELS={pomo:'FOCUS SESSION',short:'SHORT BREAK',long:'LONG BREAK'};
+let pMode='pomo',pTotal=POMO_MODES.pomo,pLeft=pTotal,pRunning=false,pInterval=null;
+function pfmt(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
+function pRing(){document.getElementById('pomo-ring').style.strokeDashoffset=(1-pLeft/pTotal)*213.6;}
+function setMode(m,el){pMode=m;pTotal=POMO_MODES[m];pLeft=pTotal;pRunning=false;clearInterval(pInterval);
+  document.getElementById('pomo-display').textContent=pfmt(pLeft);
+  document.getElementById('pomo-mode-label').textContent=POMO_LABELS[m];
+  document.getElementById('pomo-btn').textContent='▶ Start';
+  document.getElementById('pomo-ring').style.stroke=m==='pomo'?'#d4820a':m==='short'?'#1a5c5c':'#3a6644';
+  pRing();document.querySelectorAll('.pomo-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');}
+function togglePomo(){if(pRunning){pRunning=false;clearInterval(pInterval);document.getElementById('pomo-btn').textContent='▶ Resume';}
+  else{pRunning=true;document.getElementById('pomo-btn').textContent='⏸ Pause';
+    pInterval=setInterval(()=>{if(pLeft<=0){clearInterval(pInterval);pRunning=false;document.getElementById('pomo-btn').textContent='▶ Start';return;}
+      pLeft--;document.getElementById('pomo-display').textContent=pfmt(pLeft);pRing();},1000);}}
+function resetPomo(){clearInterval(pInterval);pRunning=false;pLeft=pTotal;
+  document.getElementById('pomo-display').textContent=pfmt(pLeft);
+  document.getElementById('pomo-btn').textContent='▶ Start';pRing();}
+
+// ══════════════════════════════════════════════════════════
+// PWA INSTALL
+// ══════════════════════════════════════════════════════════
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredPrompt = e;
+  document.getElementById('install-banner').style.display='flex';
+});
+document.getElementById('install-btn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const {outcome} = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('install-banner').style.display='none';
+});
+
+// ══════════════════════════════════════════════════════════
+// SERVICE WORKER
+// ══════════════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+// ══════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════
+openDB().then(async () => {
+  const saved = await dbLoad();
+  if (saved) {
+    // Merge saved into state so new default keys still appear
+    Object.keys(DEFAULT).forEach(k => {
+      if (saved[k] !== undefined) state[k] = saved[k];
+    });
+  }
+  render();
+  pRing();
+});
+</script>
+</body>
+</html>
