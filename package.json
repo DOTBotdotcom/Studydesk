@@ -1,0 +1,27 @@
+{
+  "name": "studydesk",
+  "version": "1.0.0",
+  "description": "Your personal JEE study planner — PWA",
+  "author": "DOTBotdotcom",
+  "license": "MIT",
+  "main": "index.html",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DOTBotdotcom/Studydesk.git"
+  },
+  "keywords": [
+    "jee",
+    "study",
+    "planner",
+    "pwa",
+    "productivity",
+    "habits",
+    "pomodoro",
+    "education"
+  ],
+  "homepage": "https://DOTBotdotcom.github.io/Studydesk/",
+  "scripts": {
+    "serve": "npx http-server -p 8000 -c-1",
+    "test": "echo \"No tests configured\""
+  }
+}
